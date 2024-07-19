@@ -1,69 +1,79 @@
-const fs = require("fs").promises;
-const path = require("path");
+const fs = require('fs');
+const path = require('path');
 
-/*
- * Skomentuj i zapisz wartość
- * const contactsPath = ;
+const contactsPath = path.join(__dirname, 'db', 'contacts.json');
+
+/**
+ * Zwraca listę wszystkich kontaktów.
+ * @returns {Promise<Array>} - Lista kontaktów.
  */
-const contactsPath = path.join(__dirname, "./db/contacts.js");
-
-// TODO: udokumentuj każdą funkcję
-async function listContacts() {
-  try {
-    const data = await fs.readFile(contactsPath);
-    const parsedData = JSON.parse(data);
-    console.table(parsedData);
-    return parsedData;
-  } catch (error) {
-    console.log(error);
-  }
-}
-
-async function getContactById(contactId) {
-  try {
-    const contacts = await fs.readFile(contactsPath);
-    const parsedData = JSON.parse(contacts);
-
-    const contact = parsedData.filter(contact => contact.id === contactId);
-    console.log(contact);
-    return contact;
-  } catch (error) {
-    console.log(error);
-  }
-}
-
-async function removeContact(contactId) {
-  try {
-    const contacts = await fs.readFile(contactsPath);
-    const parsedData = JSON.parse(contacts);
-
-    const contact = parsedData.filter(contact => contact.id !== contactId);
-    fs.writeFile(contactsPath, JSON.stringify(contact), error => {
-      console.log(error);
+const listContacts = () => {
+  return new Promise((resolve, reject) => {
+    fs.readFile(contactsPath, 'utf8', (err, data) => {
+      if (err) {
+        reject(err);
+      } else {
+        resolve(JSON.parse(data));
+      }
     });
-  } catch (error) {
-    console.log(error);
-  }
+  });
 }
 
-async function addContact(name, email, phone) {
-  try {
-    const contacts = await fs.readFile(contactsPath);
-    const parsedData = JSON.parse(contacts);
-
-    parsedData.push({
-      id: parsedData.length + 1,
-      name: name,
-      email: email,
-      phone: phone,
-    });
-
-    fs.writeFile(contactsPath, JSON.stringify(parsedData), error => {
-      console.log(error);
-    });
-  } catch (error) {
-    console.log(error);
-  }
+/**
+ * Zwraca kontakt o podanym ID.
+ * @param {string} contactId - ID kontaktu.
+ * @returns {Promise<Object>} - Kontakt.
+ */
+const getContactById = (contactId) => {
+  return listContacts().then(contacts => contacts.find(contact => contact.id === contactId));
 }
 
-module.exports = { listContacts, getContactById, removeContact, addContact };
+/**
+ * Usuwa kontakt o podanym ID.
+ * @param {string} contactId - ID kontaktu.
+ * @returns {Promise<void>}
+ */
+const removeContact = (contactId) => {
+  return listContacts().then(contacts => {
+    const updatedContacts = contacts.filter(contact => contact.id !== contactId);
+    return new Promise((resolve, reject) => {
+      fs.writeFile(contactsPath, JSON.stringify(updatedContacts, null, 2), err => {
+        if (err) {
+          reject(err);
+        } else {
+          resolve();
+        }
+      });
+    });
+  });
+}
+
+/**
+ * Dodaje nowy kontakt.
+ * @param {string} name - Imię.
+ * @param {string} email - Email.
+ * @param {string} phone - Telefon.
+ * @returns {Promise<void>}
+ */
+const addContact = (name, email, phone) => {
+  return listContacts().then(contacts => {
+    const newContact = { id: String(Date.now()), name, email, phone };
+    const updatedContacts = [...contacts, newContact];
+    return new Promise((resolve, reject) => {
+      fs.writeFile(contactsPath, JSON.stringify(updatedContacts, null, 2), err => {
+        if (err) {
+          reject(err);
+        } else {
+          resolve();
+        }
+      });
+    });
+  });
+}
+
+module.exports = {
+  listContacts,
+  getContactById,
+  removeContact,
+  addContact
+};
